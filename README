@@ -1,9 +1,14 @@
 == Installation ==
-  $ gem install tsm-accounting
+   # $ gem install tsm-accounting
+   This release has known bugs so I wont create a gem of it.
+   I builds however, so do it yourself.
+   
+   Known bugs: messed up special chars. If you know how to handle them corretly, please let me know!
+   
 
 == Usage ==
   require 'tsm-accounting'
-  tsm = TSMAccounting::Database.new(File.new('data/TradeSkillMaster_Accounting.lua').read)
+  tsm = TSMAccounting::Database.new('data/TradeSkillMaster_Accounting.lua')
   tsm.to_csv('/tmp/accounting.csv')
 
 == Notes ==

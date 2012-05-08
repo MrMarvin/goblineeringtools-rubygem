@@ -1,3 +1,8 @@
+== 1.2.0 ==
+* Using lua (needs to be installed and in PATH, of course) to parse the
+  savedVars. Creating a JSON structure of it (need "dkjson" LUA package
+  installed. Google it, download it, put in in LUAs lib-dir).
+
 == 1.1.0 ==
 * The item ID is now parsed (in the case of random-enchantment items, the ID
   is parsed but the enchantment data is discarded) and emitted during CSV
