@@ -1,4 +1,4 @@
-# Copyright (c) 2011, Nicholas 'OwlManAtt' Evans <owlmanatt@gmail.com>
+﻿# Copyright (c) 2011, Nicholas 'OwlManAtt' Evans <owlmanatt@gmail.com>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without modification,
@@ -26,9 +26,10 @@
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 require 'csv'
+require 'json'
 
 module TSMAccounting
-  VERSION = '1.1.0'
+  VERSION = '1.2.0'
 
   class Database
     class InvalidDatabaseFileException < RuntimeError
@@ -37,158 +38,75 @@ module TSMAccounting
     attr_reader :data
     # Expects the whole TradeSkillMaster_Accounting.lua file
     # as a string.
-    def initialize(db_string)
-      database = extract_data(db_string)
-      
-      @data = {}
-      database.each do |realm_name,realm_data|
-        @data[realm_name] = {} unless @data.has_key? realm_name
-        realm_data.each do |faction_name,faction_data|
-          @data[realm_name][faction_name] = {} unless @data[realm_name].has_key? faction_name
-          if faction_data['sell']
-            @data[realm_name][faction_name]['sale'] = parse_rope(faction_data['sell'],'sale')
-          end
-          if faction_data['buy']
-            @data[realm_name][faction_name]['purchase'] = parse_rope(faction_data['buy'],'purchase')
-          end
-        end # faction
-      end # realms
+    def initialize(path_to_tsm_accounting_file)
+
+	
+      # shell out and run lua to parse the file and print it as json
+	  json_string = `lua -e "json = require('dkjson');
+	  local sec_env = {};
+	  local script = loadstring(io.open('#{path_to_tsm_accounting_file}','r'):read('*all'));
+	  setfenv(script, sec_env);
+	  pcall(script);
+	  print(json.encode(sec_env.TradeSkillMaster_AccountingDB, { indent = true }));"`
+	  # then load the json cause its so easy and nice
+	  database = JSON::parse(json_string)
+
+	@data = {}
+	  faction_data = database["factionrealm"]
+      faction_data.keys.each do |auctionhouse|
+		faction, realm = auctionhouse.split(" - ")
+		@data[realm] = {} unless @data.has_key? realm
+		@data[realm][faction] = {} unless @data[realm].has_key? faction
+	    @data[realm][faction]["sale"] = parse_rope(faction_data[auctionhouse]["itemData"]["sell"],"sale")
+		@data[realm][faction]["purchase"] = parse_rope(faction_data[auctionhouse]["itemData"]["buy"],"purchase")
+	  end
+
     end # initialize
 
     def to_csv(output_file)
-      CSV.open(output_file, 'w') do |f|
-        f << ['Realm','Faction','Transaction Type','Time','Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
-
-        @data.each do |realm,factions|
-          factions.each do |faction,ropes|
-            ropes.each do |type,items|
-              items.each do |name,item|
-                item.transactions.each do |tx|
-                  row = [realm,faction,type] 
-                  row << tx.datetime.strftime('%Y-%m-%d %k:%M:%S')
-                  row << item.id
-                  row << item.name
-                  row << tx.quantity
-                  row << tx.stack_size
-                  row << tx.usable_price
-                  row << tx.price
-                  row << tx.buyer
-                  row << tx.seller
-
-                  f << row
-                end
-              end
-            end
-          end
-        end
-      end # close CSV
+		CSV.open(output_file, 'w') do |f|
+			f << ['Realm','Faction','Transaction Type','Time','Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
+			@data.each do |realm,factions|
+				factions.each do |faction,ropes|
+					ropes.each do |type,items|
+						unless items.nil?
+							items.each do |name,item|
+								item.transactions.each do |tx|
+									row = [realm,faction,type] 
+									row << tx.datetime.strftime('%Y-%m-%d %k:%M:%S')
+									row << item.id
+									row << item.name
+									row << tx.quantity
+									row << tx.stack_size
+									row << tx.usable_price
+									row << tx.price
+									row << tx.buyer
+									row << tx.seller
+									f << row
+								end			  
+							end
+						end # check for emtpy items end
+					end 
+				end
+			end
+		end # close CSV
     end # to_csv
 
-    protected 
-    def extract_data(db)
-      # OK, we have a big pile of lua shit. It's structured like so:
-      #
-      # TradeSkillMaster_AccountingDB = {
-      #   ["useless shit"] = {
-      #     ["more keys"] = { . . . }
-      #   }
-      #   ["factionrealm"] = {
-      #     ["Alliance - Trollbane"] = {
-      #       ["sellDataRope"] = "data"
-      #       ["tooltip"] = {
-      #         ["sale"] = true,
-      #       },
-      #       ["buyDataRope"] = "data"
-      #     }
-      #   }
-      # }
-      #
-      # @TODO Some memory usage can be saved by taking a file handler
-      #       and doing #each_line instead of having the whole file read in
-      #       and broken in to an array at once. This isn't a big deal for
-      #       my file since the only two lines of consequence are the ones I'm
-      #       going to be saving anyway but it may be a good idea if there's a
-      #       goblin operating on both factions for six realms...
-     
-      header_seen = false 
-      depth = 0
-      realm, faction = nil
-      data = {}
-      db.split("\n").each do |line|
-        header_seen = true if line =~ /^\s*TradeSkillMaster_AccountingDB\s*=\s*\{/
-
-        if line =~ /^\s*\["factionrealm"\]/
-          depth = 1
-          next
-        end
-        
-        if depth == 1
-          match = line.match(/^\s*\["(.*)"\]\s*=\s*\{/)
-          if match
-            depth = 2
-            faction, realm = match[1].split ' - ' 
-            
-            data[realm] = {} unless data.has_key? realm
-            data[realm][faction] = {} unless data[realm].has_key? faction
-
-            next
-          end
-
-          if line.match(/\s*\}/)
-            depth = 1
-            next
-          end
-        end # depth1
-
-        if depth == 2
-          match = line.match(/^\s*\["(buy|sell)DataRope"\]/)
-          if match
-            line.gsub!(/",\s*$/,'').gsub!(/^\s*\["(buy|sell)DataRope"\]\s*=\s*"/,'')
-            data[realm][faction][match[1]] = line
-            next
-          elsif line =~ /^\s*\[.*?\] = {"/
-            depth = 3
-            next
-          end
-
-          if line.match(/\s*\}/)
-            depth = 1
-            next
-          end
-        end # depth2
-
-        # tooltip shit, fuck off and die.
-        if depth == 3
-          if line.match(/\s*\}/)
-            depth = 2
-            next
-          end
-        end # depth3
-
-        if line.match(/\s*\}/)
-          depth = 0
-          next
-        end
-      end # line depth0
-
-      if !header_seen
-        raise InvalidDatabaseFileException, 'Bad file detected.'
-      end
-
-      return data
-    end # extract_data
 
     def parse_rope(rope,type)
-      list = {}
-      rope.split('?').each do |row|
-        item = Item.new(row,type)
+	  unless rope.empty?
+        list = {}
+        rope.each_value do |row|
+          item = Item.new(row,type)
 
-        if list.has_key? item.name
-          # merge
-        else
-          list[item.name] = item
+          if list.has_key? item.name
+            # merge
+          else
+            list[item.name] = item
+          end
         end
-      end
+		list
+	  end
       
      return list 
     end # parse_rope
@@ -204,7 +122,8 @@ module TSMAccounting
         @id, @name = decode_code(encoded_item)
       else
         @id, @name = decode_link(encoded_item)
-      end    
+      end
+	  # every actual transaction is seperated by @ in this single line
       @transactions = encoded_records.split('@').map {|record| Transaction.new(record,type) }
       @transactions ||= []
     end # initialize
@@ -227,8 +146,12 @@ module TSMAccounting
     # store the raw item code (as opposed to, you know, nothing).
     #
     # In theory, this shouldn't get called...
+	# if it does however, decode only itemID and leave name blank
     def decode_code(text)
-      return [nil, text]
+	# strip the x in the biginning!
+	  text = text[1..-1]	  
+	  id, ench = text.split ':'
+      return [TSMAccounting.decode(id), ""]
     end # decode_string
   end # item
 
@@ -242,7 +165,6 @@ module TSMAccounting
       @quantity = TSMAccounting.decode(d[1])
       @datetime = Time.at(TSMAccounting.decode(d[2]))
       @price = TSMAccounting.decode(d[3])
-
       if type == 'purchase'
         @buyer = d[5]
         @seller = d[4]
