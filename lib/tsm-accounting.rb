@@ -94,7 +94,7 @@ module TSMAccounting
 
 
     def parse_rope(rope,type)
-	  unless rope.empty?
+	  unless rope.nil? || rope.empty?
         list = {}
         rope.each_value do |row|
           item = Item.new(row,type)
