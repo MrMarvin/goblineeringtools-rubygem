@@ -25,42 +25,64 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+require 'timeout'
 require 'csv'
 require 'json'
 
 module TSMAccounting
-  VERSION = '1.2.0'
+  VERSION = '1.2.1'
 
   class Database
-    class InvalidDatabaseFileException < RuntimeError
-    end
 
     attr_reader :data
     # Expects the whole TradeSkillMaster_Accounting.lua file
     # as a string.
-    def initialize(path_to_tsm_accounting_file)
+    def initialize(path_to_tsm_accounting_file, lua_timeout = 10)
 
-	
-      # shell out and run lua to parse the file and print it as json
-	  json_string = `lua -e "json = require('dkjson');
-	  local sec_env = {};
-	  local script = loadstring(io.open('#{path_to_tsm_accounting_file}','r'):read('*all'));
-	  setfenv(script, sec_env);
-	  pcall(script);
-	  print(json.encode(sec_env.TradeSkillMaster_AccountingDB, { indent = true }));"`
-	  # then load the json cause its so easy and nice
-	  database = JSON::parse(json_string)
+      # use lua to create a json from the savedVars
+      lua_string =
+      "lua -e \"json = require('dkjson');
+      local sec_env = {};
+      local script = loadstring(io.open('#{path_to_tsm_accounting_file}','r'):read('*all'));
+      setfenv(script, sec_env);
+      pcall(script);
+      io.open('#{path_to_tsm_accounting_file}'..'.json','w'):write(
+        json.encode(sec_env.TradeSkillMaster_AccountingDB, { indent = true }));\""
+      
+      begin
+        Timeout.timeout(lua_timeout) do
+          # trying to redirect STDERR, but nothing happens (ruby 1.9.3)...
+          @lua_pipe = IO.popen(lua_string, :err => File.open("/dev/null","w"))
+          Process.wait @lua_pipe.pid
+        end
+       rescue Timeout::Error
+         Process.kill 9, @lua_pipe.pid
+         
+         # raise up to our consumer
+         raise
+       end
 
-	@data = {}
-	  faction_data = database["factionrealm"]
-      faction_data.keys.each do |auctionhouse|
-		faction, realm = auctionhouse.split(" - ")
-		@data[realm] = {} unless @data.has_key? realm
-		@data[realm][faction] = {} unless @data[realm].has_key? faction
-	    @data[realm][faction]["sale"] = parse_rope(faction_data[auctionhouse]["itemData"]["sell"],"sale")
-		@data[realm][faction]["purchase"] = parse_rope(faction_data[auctionhouse]["itemData"]["buy"],"purchase")
-	  end
+      # then load the json cause its so easy and nice
+      begin
+        json_string = File.open(path_to_tsm_accounting_file+'.json').read
+        database = JSON::parse(json_string)
 
+        # clean up the temp file!
+        File.delete(path_to_tsm_accounting_file+'.json')
+
+        @data = {}
+        faction_data = database["factionrealm"]
+        faction_data.keys.each do |auctionhouse|
+          faction, realm = auctionhouse.split(" - ")
+          @data[realm] = {} unless @data.has_key? realm
+          @data[realm][faction] = {} unless @data[realm].has_key? faction
+          @data[realm][faction]["sale"] = parse_rope(faction_data[auctionhouse]["itemData"]["sell"],"sale")
+          @data[realm][faction]["purchase"] = parse_rope(faction_data[auctionhouse]["itemData"]["buy"],"purchase")
+        end   
+      rescue
+        raise RuntimeError, "Invalid database file"
+      end
+    
     end # initialize
 
     def to_csv(output_file)
