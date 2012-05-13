@@ -7,6 +7,10 @@ module Goblineeringtools
   
   module TSMAccounting
 
+    def self.acceptable_fields
+      ['Realm','Faction','Realm-Faction','Transaction Type','DateTime',"Date","Time",'Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
+    end    
+
     class Database
 
       attr_reader :data
@@ -34,17 +38,13 @@ module Goblineeringtools
     
       end # initialize
 
-      def acceptable_fields
-        ['Realm','Faction','Realm-Faction','Transaction Type','DateTime',"Date","Time",'Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
-      end
-
       def to_csv(output_file, field_list=[] )
         default_fields = ['Realm','Faction','Transaction Type','DateTime','Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
         # if no fields were specified, use the default
         field_list = default_fields if field_list.empty?
 
         # !!!DANGER!!! only allow known good fields (and not abitrary method calls!)
-        raise RuntimeError, "bad field_list!" if not (field_list - acceptable_fields).empty?
+        raise RuntimeError, "bad field_list!" if not (field_list - Goblineeringtools::TSMAccounting::acceptable_fields).empty?
 
         CSV.open(output_file, 'w') do |f|
           f << field_list # the headline row
