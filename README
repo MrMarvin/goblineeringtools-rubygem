@@ -1,5 +1,5 @@
 == Installation ==
-   # $ gem install tsm-accounting
+   # $ gem install goblineeringtools
    This release has known bugs so I wont create a gem of it.
    I builds however, so do it yourself.
    
@@ -7,7 +7,7 @@
    
 
 == Usage ==
-  require 'tsm-accounting'
+  require 'goblineeringtools'
   tsm = TSMAccounting::Database.new('data/TradeSkillMaster_Accounting.lua')
   tsm.to_csv('/tmp/accounting.csv')
 
