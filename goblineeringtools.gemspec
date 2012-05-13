@@ -3,7 +3,7 @@ $:.unshift lib unless $:.include?(lib)
 
 Gem::Specification.new do |s|
   s.name        = "goblineeringtools"
-  s.version     = "0.42.0"
+  s.version     = "0.42.1"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["owlmanatt","margi"]
   s.email       = ["owlmanatt@gmail.com","marv@hostin.is"]
