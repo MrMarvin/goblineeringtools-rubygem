@@ -10,6 +10,10 @@ module Goblineeringtools
     def self.acceptable_fields
       ['Realm','Faction','Realm-Faction','Transaction Type','DateTime',"Date","Time",'Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
     end    
+    
+    def self.default_fields
+      ['Realm','Faction','Realm-Faction','Transaction Type','DateTime',"Date","Time",'Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
+    end
 
     class Database
 

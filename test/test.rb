@@ -1,8 +1,6 @@
 #!/usr/bin/ruby
-$:.unshift("#{File.expand_path(File.dirname(__FILE__))}/../lib")
-require 'safeluaparse'
-require 'tsm-accounting'
-require 'tsm-auctioning'
+$:.unshift("#{File.expand_path(File.dirname(__FILE__))}/../lib/")
+require 'goblineeringtools'
 
 puts "now with TradeSkillMaster_Accounting.lua" 
 tsm = Goblineeringtools::TSMAccounting::Database.new('./data/TradeSkillMaster_Accounting.lua')
