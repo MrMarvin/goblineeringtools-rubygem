@@ -1,7 +1,7 @@
 ﻿require 'timeout'
 require 'csv'
 require 'json'
-require 'safeluaparse.rb'
+require 'goblineeringtools/safeluaparse.rb'
 
 module Goblineeringtools
   
