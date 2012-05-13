@@ -1,15 +1,23 @@
 == Installation ==
    # $ gem install goblineeringtools
    This release has known bugs so I wont create a gem of it.
-   I builds however, so do it yourself.
+   It builds however, so do it yourself.
    
    Known bugs: messed up special chars. If you know how to handle them corretly, please let me know!
    
 
 == Usage ==
   require 'goblineeringtools'
-  tsm = TSMAccounting::Database.new('data/TradeSkillMaster_Accounting.lua')
+  tsm = Goblineeringtools::TSMAccounting::Database.new('data/TradeSkillMaster_Accounting.lua')
   tsm.to_csv('/tmp/accounting.csv')
+  
+  or
+  
+  tsm.to_csv('./accounting_fewfields.csv',["Date","Time",'Item ID','Item Name','Price (g)','Buyer']) 
+  
+  to see all possible CSV fields:
+  tsm.acceptable_fields
+
 
 == Notes ==
 The Transaction#usable_price() method outputs the price as a float. Copper >50 
@@ -20,4 +28,6 @@ If you need greater precision, price is the copper value of the transaction. It
 is included in the CSV output.
 
 == Thanks ==
-Sapu & The Consortium <http://consortium.stormspire.net/>.
+OwlManAtt for the first version of this gem,
+Sapu and all TSM devs for making TSM 
+& The Consortium <http://consortium.stormspire.net/>.
