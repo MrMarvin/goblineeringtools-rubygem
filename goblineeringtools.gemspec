@@ -4,7 +4,7 @@ require 'goblineeringtools'
 
 Gem::Specification.new do |s|
   s.name        = "goblineeringtools"
-  s.version     = "0.42.2"
+  s.version     = "0.42.3"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["owlmanatt","margi"]
   s.email       = ["owlmanatt@gmail.com","marv@hostin.is"]
