@@ -6,43 +6,27 @@ module Goblineeringtools
   
   module TSMAuctioning
 
-    class Category
+    # generates an Array of Categories and one empty categrory for Groups without any
+    def self.from_file(path_to_tsm_auctioning_file, lua_timeout = 10)
+      
+      data = Goblineeringtools::vars_to_ruby(path_to_tsm_auctioning_file,
+        "TradeSkillMaster_AccountingDB", {:cleanup? => true, :lua_timeout => lua_timeout})
+      
+      
+    end
 
-      def to_csv(output_file)
-        CSV.open(output_file, 'w') do |f|
-          f << ['Realm','Faction','Transaction Type','Time','Item ID','Item Name','Quantity','Stack Size','Price (g)','Price (c)','Buyer','Seller']
-          @data.each do |realm,factions|
-            factions.each do |faction,ropes|
-              ropes.each do |type,items|
-                unless items.nil?
-                  items.each do |name,item|
-                    item.transactions.each do |tx|
-                      row = [realm,faction,type] 
-                      row << tx.datetime.strftime('%Y-%m-%d %k:%M:%S')
-                      row << item.id
-                      row << item.name
-                      row << tx.quantity
-                      row << tx.stack_size
-                      row << tx.usable_price
-                      row << tx.price
-                      row << tx.buyer
-                      row << tx.seller
-                      f << row
-                    end
-                  end
-                end # check for emtpy items end                 
-              end                           
-            end                 
-          end 
-        end # close CSV   
-      end # to_csv        
+    class Category
+      
+      def initialize
+
+      end
 
     end # Category
 
     class Group
 
-      def to_csv(output_file)
-        
+      def initialize
+
       end
 
     end # Group

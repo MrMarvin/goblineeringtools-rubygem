@@ -3,4 +3,4 @@ $:.unshift dir unless $:.include?(dir)
 
 require 'goblineeringtools/safeluaparse'
 require 'goblineeringtools/tsm-accounting'
-require 'goblineeringtools/tsm-auctioning'
+require 'goblineeringtools/tsm-itemtracker'
