@@ -30,13 +30,22 @@ module Goblineeringtools
           faction_data = database["factionrealm"]
           faction_data.keys.each do |auctionhouse|
             faction, realm = auctionhouse.split(" - ")
+            puts auctionhouse
             @data[realm] = {} unless @data.has_key? realm
             @data[realm][faction] = {} unless @data[realm].has_key? faction
-            @data[realm][faction]["sale"] = parse_rope(faction_data[auctionhouse]["itemData"]["sell"],"sale")
-            @data[realm][faction]["purchase"] = parse_rope(faction_data[auctionhouse]["itemData"]["buy"],"purchase")
+            @data[realm][faction]["sale"] = nil
+            @data[realm][faction]["purchase"] = nil
+            begin               
+              @data[realm][faction]["sale"] = parse_rope(faction_data[auctionhouse]["itemData"]["sell"],"sale")
+              @data[realm][faction]["purchase"] = parse_rope(faction_data[auctionhouse]["itemData"]["buy"],"purchase")
+            rescue 
+              # rescue block for auction houses with no itemData
+              # dont do anything cause the @data entries are now set
+              # beforehand so no problem if this breaks... i guess.
+            end
           end   
         rescue
-          #raise
+          binding.pry
           raise RuntimeError, "Invalid database file"
         end
     
